@@ -1,15 +1,17 @@
 package com.OneOracle.LiterAlura.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Author {
 
     private String name;
 
-    @JsonProperty("birth_year") // Mapea el campo "birth_year" del JSON a "birthYear"
+    @JsonAlias("birth_year")
     private Integer birthYear;
 
-    @JsonProperty("death_year") // Mapea el campo "death_year" del JSON a "deathYear"
+    @JsonAlias("death_year")
     private Integer deathYear;
 
     // Getters y Setters
@@ -35,5 +37,15 @@ public class Author {
 
     public void setDeathYear(Integer deathYear) {
         this.deathYear = deathYear;
+    }
+
+    // toString
+    @Override
+    public String toString() {
+        return "Author{" +
+                "name='" + name + '\'' +
+                ", birthYear=" + birthYear +
+                ", deathYear=" + deathYear +
+                '}';
     }
 }

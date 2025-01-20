@@ -1,17 +1,24 @@
 package com.OneOracle.LiterAlura.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.List;
 
-@JsonIgnoreProperties(ignoreUnknown = true) // Ignora cualquier campo desconocido en el JSON
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Book {
 
     private int id;
     private String title;
+
+    @JsonAlias("authors")
     private List<Author> authors;
+
+    @JsonAlias("languages")
     private List<String> languages;
+
+    @JsonAlias("download_count")
     private int downloadCount;
-    private List<Author> translators;
 
     // Getters y Setters
     public int getId() {
@@ -54,11 +61,15 @@ public class Book {
         this.downloadCount = downloadCount;
     }
 
-    public List<Author> getTranslators() {
-        return translators;
-    }
-
-    public void setTranslators(List<Author> translators) {
-        this.translators = translators;
+    // toString
+    @Override
+    public String toString() {
+        return "Book{" +
+                "id=" + id +
+                ", title='" + title + '\'' +
+                ", authors=" + authors +
+                ", languages=" + languages +
+                ", downloadCount=" + downloadCount +
+                '}';
     }
 }
