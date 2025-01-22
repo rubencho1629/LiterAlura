@@ -1,8 +1,9 @@
 package com.OneOracle.LiterAlura.service;
 
-
 import com.OneOracle.LiterAlura.model.Author;
 import com.OneOracle.LiterAlura.model.Book;
+import com.OneOracle.LiterAlura.repository.AuthorRepository;
+import com.OneOracle.LiterAlura.repository.BookRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
@@ -21,15 +22,17 @@ public class GutendexService {
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
-    private final List<Book> searchedBooks;
+    private final BookRepository bookRepository;
+    private final AuthorRepository authorRepository;
 
-    public GutendexService() {
+    public GutendexService(BookRepository bookRepository, AuthorRepository authorRepository) {
         this.httpClient = HttpClient.newHttpClient();
         this.objectMapper = new ObjectMapper();
-        this.searchedBooks = new ArrayList<>();
+        this.bookRepository = bookRepository;
+        this.authorRepository = authorRepository;
     }
 
-    // Método existente: Obtener libros desde la API
+    // Método para obtener libros desde la API y guardarlos en la base de datos
     public List<Book> fetchBooks() {
         String apiUrl = "https://gutendex.com/books/";
 
@@ -47,6 +50,7 @@ public class GutendexService {
                 List<Book> books = new ArrayList<>();
                 for (JsonNode node : results) {
                     Book book = parseBookFromJson(node);
+                    saveBook(book); // Guardar en la base de datos
                     books.add(book);
                 }
                 return books;
@@ -57,15 +61,26 @@ public class GutendexService {
             throw new RuntimeException("Error during HTTP request: " + e.getMessage(), e);
         }
     }
-    // Nueva funcionalidad: Obtener lista de autores
-    public List<Author> listAllAuthors() {
-        return searchedBooks.stream()
-                .map(book -> book.getAuthors().get(0)) // Considerar solo el primer autor
-                .distinct() // Evitar autores duplicados
-                .collect(Collectors.toList());
+
+    // Guardar un libro y su autor en la base de datos
+    public void saveBook(Book book) {
+        // Verificar si el autor ya existe en la base de datos
+        Author author = book.getAuthors().get(0);
+        if (author != null) {
+            Author existingAuthor = authorRepository.findByName(author.getName())
+                    .orElseGet(() -> authorRepository.save(author));
+            book.setAuthors(List.of(existingAuthor));
+        }
+
+        bookRepository.save(book);
     }
 
-    // Nueva funcionalidad: Filtrar autores vivos en un año determinado
+    // Lista de todos los autores en la base de datos
+    public List<Author> listAllAuthors() {
+        return authorRepository.findAll();
+    }
+
+    // Lista de autores vivos en un año determinado
     public List<Author> listAuthorsAliveInYear(int year) {
         return listAllAuthors().stream()
                 .filter(author -> (author.getBirthYear() <= year) &&
@@ -73,11 +88,7 @@ public class GutendexService {
                 .collect(Collectors.toList());
     }
 
-    // Método para agregar libros a la lista buscada
-    public void addBookToSearchedList(Book book) {
-        searchedBooks.add(book);
-    }
-    // Nueva funcionalidad: Buscar un libro por título
+    // Buscar un libro por título desde la API y guardarlo
     public Book fetchBookByTitle(String title) {
         String apiUrl = "https://gutendex.com/books/?search=" + title.replace(" ", "%20");
 
@@ -93,9 +104,7 @@ public class GutendexService {
                 JsonNode firstResult = root.get("results").get(0);
 
                 Book book = parseBookFromJson(firstResult);
-
-                // Guardar el libro en la lista local
-                searchedBooks.add(book);
+                saveBook(book); // Guardar en la base de datos
                 return book;
             } else {
                 throw new RuntimeException("Error fetching book by title. HTTP status: " + response.statusCode());
@@ -105,33 +114,48 @@ public class GutendexService {
         }
     }
 
-    // Nueva funcionalidad: Listar todos los libros buscados
+    // Listar todos los libros buscados
     public List<Book> listAllSearchedBooks() {
-        return new ArrayList<>(searchedBooks);
+        return bookRepository.findAll();
     }
+
+    // Filtrar libros por autor
     public List<Book> filterBooksByAuthor(String authorName) {
-        return listAllSearchedBooks().stream()
+        return bookRepository.findAll().stream()
                 .filter(book -> book.getAuthors().stream()
                         .anyMatch(author -> author.getName().equalsIgnoreCase(authorName)))
                 .collect(Collectors.toList());
     }
 
-    // Nueva funcionalidad: Filtrar libros por idioma
+    // Filtrar libros por idioma
     public List<Book> filterBooksByLanguage(String language) {
-        return searchedBooks.stream()
+        return bookRepository.findAll().stream()
                 .filter(book -> book.getLanguages().get(0).equalsIgnoreCase(language))
                 .collect(Collectors.toList());
     }
+
+    // Ordenar libros por número de descargas
     public List<Book> sortBooksByDownloads() {
-        return listAllSearchedBooks().stream()
+        return bookRepository.findAll().stream()
                 .sorted((b1, b2) -> Integer.compare(b2.getDownloadCount(), b1.getDownloadCount()))
                 .collect(Collectors.toList());
+    }
+
+    // Obtener estadísticas de libros por idiomas
+    public String getBooksStatistics(List<String> languages) {
+        StringBuilder stats = new StringBuilder();
+        stats.append("\n==== Estadísticas de Libros ====\n");
+        for (String language : languages) {
+            long count = bookRepository.countByLanguagesContaining(language);
+            stats.append("Idioma: ").append(language).append(", Cantidad de Libros: ").append(count).append("\n");
+        }
+        return stats.toString();
     }
 
     // Método privado para convertir JSON en objeto Book
     private Book parseBookFromJson(JsonNode node) {
         Book book = new Book();
-        book.setId(node.get("id").asInt());
+        book.setId(Long.valueOf(node.get("id").asInt())); // Conversión de int a Long
         book.setTitle(node.get("title").asText());
 
         JsonNode authorNode = node.get("authors").get(0);

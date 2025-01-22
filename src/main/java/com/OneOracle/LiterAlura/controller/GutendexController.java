@@ -52,4 +52,10 @@ public class GutendexController {
     public List<Book> filterBooksByLanguage(@RequestParam String language) {
         return gutendexService.filterBooksByLanguage(language);
     }
+
+    // Endpoint para estadísticas de libros por idiomas
+    @GetMapping("/statistics")
+    public String getBookStatistics(@RequestParam List<String> languages) {
+        return gutendexService.getBooksStatistics(languages);
+    }
 }

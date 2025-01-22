@@ -1,31 +1,37 @@
 package com.OneOracle.LiterAlura.model;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
+import jakarta.persistence.*;
 import java.util.List;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
+@Entity
 public class Book {
 
-    private int id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     private String title;
 
-    @JsonAlias("authors")
+    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "book_author",
+            joinColumns = @JoinColumn(name = "book_id"),
+            inverseJoinColumns = @JoinColumn(name = "author_id")
+    )
     private List<Author> authors;
 
-    @JsonAlias("languages")
+    @ElementCollection
     private List<String> languages;
 
-    @JsonAlias("download_count")
     private int downloadCount;
 
     // Getters y Setters
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    // Al igual que en Author, evita usar setId manualmente.
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -59,17 +65,5 @@ public class Book {
 
     public void setDownloadCount(int downloadCount) {
         this.downloadCount = downloadCount;
-    }
-
-    // toString
-    @Override
-    public String toString() {
-        return "Book{" +
-                "id=" + id +
-                ", title='" + title + '\'' +
-                ", authors=" + authors +
-                ", languages=" + languages +
-                ", downloadCount=" + downloadCount +
-                '}';
     }
 }

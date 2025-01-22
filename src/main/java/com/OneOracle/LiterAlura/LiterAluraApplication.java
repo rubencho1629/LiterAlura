@@ -46,10 +46,11 @@ public class LiterAluraApplication implements CommandLineRunner {
 				case 5 -> filterBooksByLanguage(scanner);
 				case 6 -> listAllAuthors();
 				case 7 -> listAuthorsAliveInYear(scanner);
-				case 8 -> System.out.println("¡Gracias por usar LiterAlura! Saliendo...");
+				case 8 -> showLanguageStatistics(scanner);
+				case 9 -> System.out.println("¡Gracias por usar LiterAlura! Saliendo...");
 				default -> System.out.println("Opción inválida. Inténtalo de nuevo.");
 			}
-		} while (option != 8);
+		} while (option != 9);
 	}
 
 	private void displayMenu() {
@@ -61,7 +62,8 @@ public class LiterAluraApplication implements CommandLineRunner {
 		System.out.println("5. Filtrar libros por idioma");
 		System.out.println("6. Listar todos los autores");
 		System.out.println("7. Listar autores vivos en un año");
-		System.out.println("8. Salir");
+		System.out.println("8. Mostrar estadísticas de libros por idioma");
+		System.out.println("9. Salir");
 		System.out.println("=========================");
 	}
 
@@ -145,5 +147,13 @@ public class LiterAluraApplication implements CommandLineRunner {
 					", Año de nacimiento: " + author.getBirthYear() +
 					", Año de fallecimiento: " + (author.getDeathYear() != null ? author.getDeathYear() : "N/A")));
 		}
+	}
+
+	private void showLanguageStatistics(Scanner scanner) {
+		System.out.println("Ingrese los idiomas (códigos ISO separados por comas, por ejemplo: en,es,fr): ");
+		String input = scanner.nextLine();
+		List<String> languages = List.of(input.split(","));
+		String statistics = gutendexService.getBooksStatistics(languages);
+		System.out.println(statistics);
 	}
 }
